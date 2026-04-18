@@ -90,9 +90,12 @@ class CheckInChain {
     this.first = already;
   }
 
-  validate(passenger: Passenger, flightStatus: string): ValidationResult {
+  validate(passenger: Passenger, flightStatus: string, flightId?: string): ValidationResult {
     const result = this.first.handle({ passenger, flightStatus });
-    logger.log(result.message);
+    const msg = flightId
+      ? `[VALIDACIÓN] Vuelo ${flightId}: ${result.message}`
+      : result.message;
+    logger.log(msg);
     return result;
   }
 }

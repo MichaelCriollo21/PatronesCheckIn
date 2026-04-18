@@ -10,15 +10,15 @@ import logger from "./Logger";
 export interface CheckInStrategy {
   label: string;
   icon: string;
-  execute: (passenger: string) => string;
+  execute: (passenger: string, flightId: string) => string;
 }
 
 const CheckInStrategies: Record<string, CheckInStrategy> = {
   online: {
     label: "Online",
     icon: "🌐",
-    execute: (passenger: string) => {
-      const msg = `[ONLINE] ${passenger} hizo check-in online. Asiento asignado automáticamente.`;
+    execute: (passenger: string, flightId: string) => {
+      const msg = `[CHECK-IN] ${passenger} hizo check-in online en el vuelo ${flightId}. Asiento asignado automáticamente.`;
       logger.log(msg);
       return msg;
     },
@@ -26,8 +26,8 @@ const CheckInStrategies: Record<string, CheckInStrategy> = {
   kiosk: {
     label: "Kiosk",
     icon: "🖥️",
-    execute: (passenger: string) => {
-      const msg = `[KIOSK] ${passenger} usó el kiosk del aeropuerto. Tarjeta de embarque impresa.`;
+    execute: (passenger: string, flightId: string) => {
+      const msg = `[CHECK-IN] ${passenger} usó el kiosk del aeropuerto para el vuelo ${flightId}. Tarjeta de embarque impresa.`;
       logger.log(msg);
       return msg;
     },
@@ -35,8 +35,8 @@ const CheckInStrategies: Record<string, CheckInStrategy> = {
   counter: {
     label: "Mostrador",
     icon: "🧑‍✈️",
-    execute: (passenger: string) => {
-      const msg = `[MOSTRADOR] ${passenger} hizo check-in en ventanilla con agente.`;
+    execute: (passenger: string, flightId: string) => {
+      const msg = `[CHECK-IN] ${passenger} hizo check-in en ventanilla para el vuelo ${flightId} con agente.`;
       logger.log(msg);
       return msg;
     },

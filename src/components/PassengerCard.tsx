@@ -11,14 +11,16 @@ interface PassengerCardProps {
   passenger: Passenger;
   selectedStrategy: string;
   flightStatus: string;
+  flightId: string;
   mediator: any; // Could type this better, but for now any
 }
 
-export default function PassengerCard({ passenger, selectedStrategy, flightStatus, mediator }: PassengerCardProps) {
+export default function PassengerCard({ passenger, selectedStrategy, flightStatus, flightId, mediator }: PassengerCardProps) {
   const strategy = CheckInStrategies[selectedStrategy];
 
   const handleCheckIn = () => {
     mediator.notify("PassengerCard", "CHECK_IN", {
+      flightId,
       passengerName: passenger.name,
       strategy: selectedStrategy,
       passenger,

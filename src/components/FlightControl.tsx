@@ -8,10 +8,11 @@ import { useState } from "react";
 
 interface FlightControlProps {
   mediator: any; // Could type better
+  flightId: string;
   flightStatus: string;
 }
 
-export default function FlightControl({ mediator, flightStatus }: FlightControlProps) {
+export default function FlightControl({ mediator, flightId, flightStatus }: FlightControlProps) {
   const [delayMinutes, setDelayMinutes] = useState(30);
 
   const getPatternColor = () => {
@@ -22,19 +23,19 @@ export default function FlightControl({ mediator, flightStatus }: FlightControlP
   };
 
   const handleDelay = () => {
-    mediator.notify("FlightControl", "DELAY", { minutes: delayMinutes });
+    mediator.notify("FlightControl", "DELAY", { flightId, minutes: delayMinutes });
   };
 
   const handleOnTime = () => {
-    mediator.notify("FlightControl", "ON_TIME");
+    mediator.notify("FlightControl", "ON_TIME", { flightId });
   };
 
   const handleStartBoarding = () => {
-    mediator.notify("FlightControl", "BOARDING");
+    mediator.notify("FlightControl", "BOARDING", { flightId });
   };
 
   const handleCancel = () => {
-    mediator.notify("FlightControl", "CANCEL");
+    mediator.notify("FlightControl", "CANCEL", { flightId });
   };
 
   return (

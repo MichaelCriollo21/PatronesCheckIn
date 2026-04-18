@@ -24,19 +24,23 @@ import { Passenger } from "./PassengerFactory";
 import FlightSubject from "./FlightSubject";
 
 interface MediatorCallbacks {
-  onPassengersChange?: (updater: (prev: Passenger[]) => Passenger[]) => void;
-  onCheckInResult?: (msg: string) => void;
-  onStatusChange?: (status: string) => void;
+  onPassengersChange?: (flightId: string, updater: (prev: Passenger[]) => Passenger[]) => void;
+  onCheckInResult?: (flightId: string, msg: string) => void;
+  onStatusChange?: (flightId: string, status: string) => void;
 }
 
 class FlightMediator {
-  private flight: FlightSubject;
-  private onPassengersChange?: (updater: (prev: Passenger[]) => Passenger[]) => void;
-  private onCheckInResult?: (msg: string) => void;
-  private onStatusChange?: (status: string) => void;
+  private flights: Record<string, FlightSubject> = {};
+  private onPassengersChange?: (flightId: string, updater: (prev: Passenger[]) => Passenger[]) => void;
+  private onCheckInResult?: (flightId: string, msg: string) => void;
+  private onStatusChange?: (flightId: string, status: string) => void;
 
-  constructor(flight: FlightSubject) {
-    this.flight = flight;
+  constructor() {}
+
+  registerFlights(flights: { id: string; subject: FlightSubject }[]): void {
+    flights.forEach((flight) => {
+      this.flights[flight.id] = flight.subject;
+    });
   }
 
   // Registrar callbacks desde el componente React
@@ -50,55 +54,110 @@ class FlightMediator {
   notify(sender: string, event: string, payload: any = {}): void {
     logger.log(`[MEDIATOR] Evento recibido de "${sender}": ${event}`);
 
+    const { flightId } = payload;
+    const flight = flightId ? this.flights[flightId] : undefined;
+
     switch (event) {
       case "CHECK_IN": {
-        const { passengerName, strategy, passenger, flightStatus } = payload;
-        const validation = checkInChain.validate(passenger, flightStatus);
-
-        if (!validation.ok) {
-          this.onCheckInResult?.(validation.message);
+        if (!flightId || !flight) {
+          logger.log(`[MEDIATOR] Vuelo no encontrado para CHECK_IN: ${flightId}`);
           break;
         }
 
-        const result = CheckInStrategies[strategy].execute(passengerName);
+        const { passengerName, strategy, passenger, flightStatus } = payload;
+        const validation = checkInChain.validate(passenger, flightStatus, flightId);
 
-        this.onPassengersChange?.((prev) =>
+        if (!validation.ok) {
+          this.onCheckInResult?.(flightId, validation.message);
+          break;
+        }
+
+        const result = CheckInStrategies[strategy].execute(passengerName, flightId);
+
+        this.onPassengersChange?.(flightId, (prev) =>
           prev.map((p) =>
             p.name === passengerName ? { ...p, checkedIn: true } : p
           )
         );
-        this.onCheckInResult?.(result);
+        this.onCheckInResult?.(flightId, result);
         break;
       }
 
       case "DELAY": {
+        if (!flightId || !flight) {
+          logger.log(`[MEDIATOR] Vuelo no encontrado para DELAY: ${flightId}`);
+          break;
+        }
+
         const { minutes } = payload;
-        this.flight.delay(minutes);
-        this.onStatusChange?.(this.flight.getStatus());
+        flight.delay(minutes);
+        this.onStatusChange?.(flightId, flight.getStatus());
         break;
       }
 
       case "ON_TIME": {
-        this.flight.onTime();
-        this.onStatusChange?.(this.flight.getStatus());
+        if (!flightId || !flight) {
+          logger.log(`[MEDIATOR] Vuelo no encontrado para ON_TIME: ${flightId}`);
+          break;
+        }
+
+        flight.onTime();
+        this.onStatusChange?.(flightId, flight.getStatus());
         break;
       }
 
       case "ADD_PASSENGER": {
+        if (!flightId) {
+          logger.log(`[MEDIATOR] flightId requerido para ADD_PASSENGER`);
+          break;
+        }
+
         const { passenger } = payload;
-        this.onPassengersChange?.((prev) => [...prev, passenger]);
+        this.onPassengersChange?.(flightId, (prev) => [...prev, passenger]);
         break;
       }
 
       case "BOARDING": {
-        this.flight.startBoarding();
-        this.onStatusChange?.(this.flight.getStatus());
+        if (!flightId || !flight) {
+          logger.log(`[MEDIATOR] Vuelo no encontrado para BOARDING: ${flightId}`);
+          break;
+        }
+
+        flight.startBoarding();
+        this.onStatusChange?.(flightId, flight.getStatus());
         break;
       }
 
       case "CANCEL": {
-        this.flight.cancel();
-        this.onStatusChange?.(this.flight.getStatus());
+        if (!flightId || !flight) {
+          logger.log(`[MEDIATOR] Vuelo no encontrado para CANCEL: ${flightId}`);
+          break;
+        }
+
+        flight.cancel();
+        this.onStatusChange?.(flightId, flight.getStatus());
+        break;
+      }
+
+      case "FLIGHT_STATUS_CHANGE": {
+        if (!flightId || !flight) {
+          logger.log(`[MEDIATOR] Vuelo no encontrado para FLIGHT_STATUS_CHANGE: ${flightId}`);
+          break;
+        }
+
+        const { status } = payload;
+        if (status === "A tiempo") {
+          flight.onTime();
+        } else if (status === "Embarcando") {
+          flight.startBoarding();
+        } else if (status.includes("Retrasado")) {
+          // Para retrasos, mantenemos el estado actual si ya está retrasado
+          // o podríamos agregar lógica adicional aquí
+        } else if (status === "Cancelado") {
+          flight.cancel();
+        }
+
+        this.onStatusChange?.(flightId, flight.getStatus());
         break;
       }
 
