@@ -1,25 +1,14 @@
-// ============================================================
-// Componente: LogPanel
-// Muestra los registros del Logger Singleton.
-// Aunque este componente se monte/desmonte, el logger
-// conserva todos los registros porque es una única instancia.
-// ============================================================
+import { useLogger } from "../store";
 
-interface LogEntry {
-  time: string;
-  msg: string;
-}
-
-interface LogPanelProps {
-  logs: LogEntry[];
-}
-
-export default function LogPanel({ logs }: LogPanelProps) {
+export function LogPanel() {
+  const { logs } = useLogger();
+  
   return (
     <div style={{
       background: "#0f172a",
       border: "1px solid #1e3a5f",
       borderRadius: "12px",
+      marginTop: "24px",
       padding: "16px",
       maxHeight: "200px",
       overflow: "hidden",
@@ -27,7 +16,7 @@ export default function LogPanel({ logs }: LogPanelProps) {
       flexDirection: "column",
     }}>
       <div style={{ fontSize: "10px", letterSpacing: "3px", color: "#fbbf24", marginBottom: "10px" }}>
-        PATTERN: SINGLETON — LOG GLOBAL
+        PATTERN: SINGLETON — OBSERVADOR
       </div>
 
       <div style={{ overflowY: "auto", flex: 1 }}>
