@@ -1,58 +1,51 @@
 import { CheckInStrategies, CheckInStrategyKey } from "../application/CheckInStrategies";
 
 interface PassengerCreationFormProps {
-  newPassengerName: string;
-  onPassengerNameChange: (value: string) => void;
-  vip: boolean;
-  onVipChange: (value: boolean) => void;
-  baggageInHold: boolean;
-  onBaggageInHoldChange: (value: boolean) => void;
-  priorityBoarding: boolean;
-  onPriorityBoardingChange: (value: boolean) => void;
+  passangerOptions?: {
+    name: string;
+    vip?: boolean;
+    baggageInHold?: boolean;
+    priorityBoarding?: boolean;
+  };
   selectedStrategy: CheckInStrategyKey;
+  onUpdatePassangerOptions: (options: Partial<PassengerCreationFormProps["passangerOptions"]>) => void;
   onStrategyChange: (strategy: CheckInStrategyKey) => void;
   onCreatePassenger: () => void;
 }
 
 export function PassengerCreationForm({
-  newPassengerName,
-  onPassengerNameChange,
-  vip,
-  onVipChange,
-  baggageInHold,
-  onBaggageInHoldChange,
-  priorityBoarding,
-  onPriorityBoardingChange,
+  passangerOptions,
   selectedStrategy,
+  onUpdatePassangerOptions,
   onStrategyChange,
-  onCreatePassenger,
+  onCreatePassenger
 }: PassengerCreationFormProps) {
   return (
     <div style={{ display: "grid", gap: "10px" }}>
       <input
-        value={newPassengerName}
-        onChange={(event) => onPassengerNameChange(event.target.value)}
+        value={passangerOptions?.name || ""}
+        onChange={(event) => onUpdatePassangerOptions({ name: event.target.value })}
         placeholder="Nombre del pasajero"
         style={inputStyle}
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "10px" }}>
         <label style={checkLabelStyle}>
-          <input type="checkbox" checked={vip} onChange={(event) => onVipChange(event.target.checked)} /> VIP
+          <input type="checkbox" checked={passangerOptions?.vip} onChange={(event) => onUpdatePassangerOptions({ vip: event.target.checked })} /> VIP
         </label>
         <label style={checkLabelStyle}>
           <input
             type="checkbox"
-            checked={baggageInHold}
-            onChange={(event) => onBaggageInHoldChange(event.target.checked)}
+            checked={passangerOptions?.baggageInHold}
+            onChange={(event) => onUpdatePassangerOptions({ baggageInHold: event.target.checked })}
           />
           Equipaje en bodega
         </label>
         <label style={checkLabelStyle}>
           <input
             type="checkbox"
-            checked={priorityBoarding}
-            onChange={(event) => onPriorityBoardingChange(event.target.checked)}
+            checked={passangerOptions?.priorityBoarding}
+            onChange={(event) => onUpdatePassangerOptions({ priorityBoarding: event.target.checked })}
           />
           Entrada prioritaria
         </label>

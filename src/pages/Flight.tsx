@@ -18,7 +18,10 @@ const STATE_LABELS: Record<FlightStateName, string> = {
   Takeoff: "Despegado",
 };
 
-const STATE_COLORS: Record<FlightStateName, { border: string; background: string; text: string }> = {
+const STATE_COLORS: Record<
+  FlightStateName,
+  { border: string; background: string; text: string }
+> = {
   New: { border: "#1d4ed8", background: "#172554", text: "#bfdbfe" },
   Delayed: { border: "#ea580c", background: "#431407", text: "#fdba74" },
   Boarding: { border: "#16a34a", background: "#052e16", text: "#86efac" },
@@ -31,7 +34,9 @@ export function FlightPage() {
   const navigate = useNavigate();
   const { flightId: encodedFlightId } = useParams();
   const flights = useFlights((state) => state.flights);
-  const getOrCreateMediator = useFlightMediators((state) => state.getOrCreateMediator);
+  const getOrCreateMediator = useFlightMediators(
+    (state) => state.getOrCreateMediator,
+  );
 
   const decodedFlightId = useMemo(() => {
     if (!encodedFlightId) {
@@ -47,7 +52,7 @@ export function FlightPage() {
 
   const flight = useMemo(
     () => flights.find((entry) => entry.getId() === decodedFlightId),
-    [flights, decodedFlightId]
+    [flights, decodedFlightId],
   );
 
   const mediator = useMemo(() => {
@@ -57,30 +62,44 @@ export function FlightPage() {
     return getOrCreateMediator(flight);
   }, [flight, getOrCreateMediator]);
 
-  const [selectedStrategy, setSelectedStrategy] = useState<CheckInStrategyKey>("online");
-  const [newPassengerName, setNewPassengerName] = useState("");
-  const [vip, setVip] = useState(false);
-  const [baggageInHold, setBaggageInHold] = useState(false);
-  const [priorityBoarding, setPriorityBoarding] = useState(false);
+  const [selectedStrategy, setSelectedStrategy] =
+    useState<CheckInStrategyKey>("online");
+  const [passangerOptions, setPassangerOptions] = useState<{
+    vip?: boolean;
+    baggageInHold?: boolean;
+    priorityBoarding?: boolean;
+    name: string;
+  }>();
   const [delayMinutes, setDelayMinutes] = useState(15);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const passengers = useMemo(() => mediator?.getPassengers() ?? [], [mediator, refreshKey]);
-  const checkedInNames = useMemo(
-    () => new Set((mediator?.getCheckedInPassengers() ?? []).map((passenger) => passenger.getName())),
-    [mediator, refreshKey]
+  const passengers = useMemo(
+    () => mediator?.getPassengers() ?? [],
+    [mediator, refreshKey],
   );
-  const enabledStates = useMemo(() => mediator?.getEnabledStates() ?? [], [mediator, refreshKey]);
+  const checkedInNames = useMemo(
+    () =>
+      new Set(
+        (mediator?.getCheckedInPassengers() ?? []).map((passenger) =>
+          passenger.getName(),
+        ),
+      ),
+    [mediator, refreshKey],
+  );
+  const enabledStates = useMemo(
+    () => mediator?.getEnabledStates() ?? [],
+    [mediator, refreshKey],
+  );
 
   const refresh = () => setRefreshKey((value) => value + 1);
 
   const handleCreatePassenger = () => {
-    if (!mediator) {
+    if (!mediator || !passangerOptions) {
       return;
     }
 
-    const name = newPassengerName.trim();
+    const name = passangerOptions?.name.trim();
     if (!name) {
       setError("Debes ingresar el nombre del pasajero.");
       return;
@@ -88,25 +107,26 @@ export function FlightPage() {
 
     try {
       const passenger = mediator.addPassenger(name, {
-        vip,
-        baggageInHold,
-        priorityBoarding,
+        vip: passangerOptions?.vip,
+        baggageInHold: passangerOptions?.baggageInHold,
+        priorityBoarding: passangerOptions?.priorityBoarding,
       });
 
       logger.log(
-        `[PASSENGER] ${passenger.getName()} agregado al vuelo ${mediator.getFlight().getNumber()} (${passenger
-          .getFeatures()
-          .join(", ") || "regular"})`
+        `[PASSENGER] ${passenger.getName()} agregado al vuelo ${mediator.getFlight().getNumber()} (${
+          passenger.getFeatures().join(", ") || "regular"
+        })`,
       );
 
-      setNewPassengerName("");
-      setVip(false);
-      setBaggageInHold(false);
-      setPriorityBoarding(false);
+      setPassangerOptions(undefined);
       setError(null);
       refresh();
     } catch (creationError) {
-      setError(creationError instanceof Error ? creationError.message : "No se pudo crear el pasajero");
+      setError(
+        creationError instanceof Error
+          ? creationError.message
+          : "No se pudo crear el pasajero",
+      );
     }
   };
 
@@ -116,12 +136,19 @@ export function FlightPage() {
     }
 
     try {
-      const result = mediator.checkInPassenger(passenger.getName(), selectedStrategy);
+      const result = mediator.checkInPassenger(
+        passenger.getName(),
+        selectedStrategy,
+      );
       logger.log(result);
       setError(null);
       refresh();
     } catch (checkInError) {
-      setError(checkInError instanceof Error ? checkInError.message : "No se pudo registrar el check-in");
+      setError(
+        checkInError instanceof Error
+          ? checkInError.message
+          : "No se pudo registrar el check-in",
+      );
     }
   };
 
@@ -135,12 +162,16 @@ export function FlightPage() {
       logger.log(
         `[STATE] ${mediator.getFlight().getNumber()} cambio a ${nextState}${
           nextState === "Delayed" ? ` (${delayMinutes} min)` : ""
-        }`
+        }`,
       );
       setError(null);
       refresh();
     } catch (stateError) {
-      setError(stateError instanceof Error ? stateError.message : "No se pudo cambiar el estado");
+      setError(
+        stateError instanceof Error
+          ? stateError.message
+          : "No se pudo cambiar el estado",
+      );
     }
   };
 
@@ -155,7 +186,9 @@ export function FlightPage() {
           color: "#94a3b8",
         }}
       >
-        <div style={{ marginBottom: "12px", fontSize: "14px", color: "#fca5a5" }}>
+        <div
+          style={{ marginBottom: "12px", fontSize: "14px", color: "#fca5a5" }}
+        >
           No se encontró el vuelo para esta URL.
         </div>
         <button
@@ -189,7 +222,9 @@ export function FlightPage() {
         }}
       >
         <div>
-          <div style={{ fontSize: "11px", color: "#64748b", letterSpacing: "2px" }}>
+          <div
+            style={{ fontSize: "11px", color: "#64748b", letterSpacing: "2px" }}
+          >
             GESTIÓN DE VUELO
           </div>
           <div style={{ fontSize: "15px", color: "#94a3b8" }}>
@@ -231,12 +266,21 @@ export function FlightPage() {
             position: "relative",
           }}
         >
-          <div style={{ fontSize: "13px", color: "#7dd3fc", fontWeight: "bold", letterSpacing: "1px" }}>
+          <div
+            style={{
+              fontSize: "13px",
+              color: "#7dd3fc",
+              fontWeight: "bold",
+              letterSpacing: "1px",
+            }}
+          >
             ESTADO DEL VUELO
           </div>
 
           <div style={{ display: "grid", gap: "8px" }}>
-            <span style={{ fontSize: "12px", color: "#64748b" }}>Estado actual:</span>
+            <span style={{ fontSize: "12px", color: "#64748b" }}>
+              Estado actual:
+            </span>
             <span
               style={{
                 display: "inline-flex",
@@ -268,14 +312,18 @@ export function FlightPage() {
                 gap: "8px",
               }}
             >
-              <div style={{ fontSize: "12px", color: "#94a3b8" }}>Minutos de retraso: {delayMinutes} min</div>
+              <div style={{ fontSize: "12px", color: "#94a3b8" }}>
+                Minutos de retraso: {delayMinutes} min
+              </div>
               <input
                 type="range"
                 min={5}
                 max={180}
                 step={5}
                 value={delayMinutes}
-                onChange={(event) => setDelayMinutes(Number(event.target.value))}
+                onChange={(event) =>
+                  setDelayMinutes(Number(event.target.value))
+                }
               />
             </div>
           ) : null}
@@ -283,7 +331,9 @@ export function FlightPage() {
           <div style={{ display: "grid", gap: "10px" }}>
             <div style={{ fontSize: "12px", color: "#64748b" }}>Cambiar a:</div>
             {enabledStates.length === 0 ? (
-              <span style={{ color: "#64748b", fontSize: "12px" }}>No hay transiciones habilitadas.</span>
+              <span style={{ color: "#64748b", fontSize: "12px" }}>
+                No hay transiciones habilitadas.
+              </span>
             ) : (
               <div style={{ display: "grid", gap: "8px" }}>
                 {enabledStates.map((state) => (
@@ -315,56 +365,61 @@ export function FlightPage() {
             gap: "14px",
           }}
         >
-        <div style={{ fontSize: "13px", color: "#7dd3fc", fontWeight: "bold", letterSpacing: "1px" }}>
-          PASAJEROS
-        </div>
+          <div
+            style={{
+              fontSize: "13px",
+              color: "#7dd3fc",
+              fontWeight: "bold",
+              letterSpacing: "1px",
+            }}
+          >
+            PASAJEROS
+          </div>
 
-        <div style={{ display: "grid", gap: "10px" }}>
-          <PassengerCreationForm
-            newPassengerName={newPassengerName}
-            onPassengerNameChange={setNewPassengerName}
-            vip={vip}
-            onVipChange={setVip}
-            baggageInHold={baggageInHold}
-            onBaggageInHoldChange={setBaggageInHold}
-            priorityBoarding={priorityBoarding}
-            onPriorityBoardingChange={setPriorityBoarding}
-            selectedStrategy={selectedStrategy}
-            onStrategyChange={setSelectedStrategy}
-            onCreatePassenger={handleCreatePassenger}
-          />
+          <div style={{ display: "grid", gap: "10px" }}>
+            <PassengerCreationForm
+              selectedStrategy={selectedStrategy}
+              onStrategyChange={setSelectedStrategy}
+              onCreatePassenger={handleCreatePassenger}
+              passangerOptions={passangerOptions}
+              onUpdatePassangerOptions={(options) =>
+                setPassangerOptions((current) => ({ ...current, ...options }))
+              }
+            />
 
-          {error ? (
-            <div
-              style={{
-                borderRadius: "8px",
-                border: "1px solid #7f1d1d",
-                background: "#450a0a",
-                color: "#fca5a5",
-                fontSize: "12px",
-                padding: "8px 10px",
-              }}
-            >
-              {error}
-            </div>
-          ) : null}
-        </div>
+            {error ? (
+              <div
+                style={{
+                  borderRadius: "8px",
+                  border: "1px solid #7f1d1d",
+                  background: "#450a0a",
+                  color: "#fca5a5",
+                  fontSize: "12px",
+                  padding: "8px 10px",
+                }}
+              >
+                {error}
+              </div>
+            ) : null}
+          </div>
 
-        <div style={{ display: "grid", gap: "10px", marginTop: "8px" }}>
-          {passengers.length === 0 ? (
-            <div style={{ color: "#64748b", fontSize: "12px" }}>No hay pasajeros agregados.</div>
-          ) : (
-            passengers.map((passenger) => (
-              <PassengerCard
-                key={passenger.getName()}
-                passenger={passenger}
-                checkedIn={checkedInNames.has(passenger.getName())}
-                selectedStrategy={selectedStrategy}
-                onCheckIn={handleCheckIn}
-              />
-            ))
-          )}
-        </div>
+          <div style={{ display: "grid", gap: "10px", marginTop: "8px" }}>
+            {passengers.length === 0 ? (
+              <div style={{ color: "#64748b", fontSize: "12px" }}>
+                No hay pasajeros agregados.
+              </div>
+            ) : (
+              passengers.map((passenger) => (
+                <PassengerCard
+                  key={passenger.getName()}
+                  passenger={passenger}
+                  checkedIn={checkedInNames.has(passenger.getName())}
+                  selectedStrategy={selectedStrategy}
+                  onCheckIn={handleCheckIn}
+                />
+              ))
+            )}
+          </div>
         </section>
       </div>
     </div>
